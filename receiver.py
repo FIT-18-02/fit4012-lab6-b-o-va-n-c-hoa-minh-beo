@@ -1,3 +1,5 @@
+import sys
+import io
 import os
 import socket
 from pathlib import Path
@@ -53,6 +55,8 @@ def receive_data_packet() -> bytes:
 
 
 def main() -> None:
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     lines = []
 
     line = f"[*] Receiver đang lắng nghe kênh khóa tại {HOST}:{KEY_PORT}"

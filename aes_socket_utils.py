@@ -135,3 +135,14 @@ def recv_exact(conn, n: int) -> bytes:
         chunks.append(chunk)
         received += len(chunk)
     return b"".join(chunks)
+def parse_data_packet(packet: bytes) -> bytes:
+    """Parse data channel packet: bóc tách ciphertext từ gói tin."""
+    if len(packet) < LENGTH_HEADER_SIZE:
+        raise ValueError("Data packet quá ngắn, không chứa đủ header.")
+    cipher_len = struct.unpack("!I", packet[:LENGTH_HEADER_SIZE])[0]
+    ciphertext = packet[LENGTH_HEADER_SIZE : LENGTH_HEADER_SIZE + cipher_len]
+    
+    if len(ciphertext) != cipher_len:
+        raise ValueError("Độ dài Ciphertext nhận được không khớp với header.")
+        
+    return ciphertext

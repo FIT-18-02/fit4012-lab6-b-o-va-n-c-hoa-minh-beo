@@ -1,7 +1,9 @@
+import pytest
 from aes_socket_utils import (
     build_data_packet,
     build_key_packet,
     encrypt_aes_cbc,
+    decrypt_aes_cbc,
     parse_key_packet,
     parse_length_header,
     pad,
@@ -37,3 +39,26 @@ def test_data_packet_contains_correct_length():
     length = parse_length_header(packet[:4])
     assert length == len(cipher_bytes)
     assert packet[4:] == cipher_bytes
+
+def test_ca1_happy_path():
+    """Ca 1: plain -> encrypt -> decrypt -> plain"""
+    plain = b"FIT4012 Lab 6 AES-CBC"
+    # Mã hóa
+    key, iv, cipher_bytes = encrypt_aes_cbc(plain)
+    # Giải mã ngược lại
+    decrypted = decrypt_aes_cbc(key, iv, cipher_bytes)
+    # Kết quả phải khớp hoàn toàn với bản gốc
+    assert decrypted == plain
+def test_ca7_empty_message_logic():
+    """
+    Ca 7: Kiểm tra xử lý bản tin rỗng
+    Mục tiêu: Đảm bảo PKCS#7 vẫn tạo ra 1 khối padding đầy đủ cho chuỗi rỗng
+    """
+    plaintext = b""
+    
+    key, iv, ciphertext = encrypt_aes_cbc(plaintext)
+    
+    assert len(ciphertext) == 16, "Bản tin rỗng phải có ciphertext dài 16 bytes"
+    
+    decrypted = decrypt_aes_cbc(key, iv, ciphertext)
+    assert decrypted == b"", "Giải mã bản tin rỗng phải trả về b''"
