@@ -17,13 +17,19 @@ def find_free_port() -> int:
 def wait_for_output(process, text: str, timeout: float = 5.0) -> str:
     collected = []
     start = time.time()
+
     while time.time() - start < timeout:
         line = process.stdout.readline()
+
         if line:
             collected.append(line)
+
             if text in line:
                 return "".join(collected)
-    raise AssertionError(f"Không thấy output '{text}'. Output đã nhận: {''.join(collected)}")
+
+    raise AssertionError(
+        f"Khong thay output '{text}'. Output da nhan: {''.join(collected)}"
+    )
 
 
 def test_local_sender_receiver_roundtrip():
@@ -31,8 +37,10 @@ def test_local_sender_receiver_roundtrip():
     key_port = find_free_port()
 
     receiver_env = os.environ.copy()
+
     receiver_env.update({
         "PYTHONUNBUFFERED": "1",
+        "PYTHONIOENCODING": "utf-8",
         "RECEIVER_HOST": "127.0.0.1",
         "DATA_PORT": str(data_port),
         "KEY_PORT": str(key_port),
@@ -40,8 +48,10 @@ def test_local_sender_receiver_roundtrip():
     })
 
     sender_env = os.environ.copy()
+
     sender_env.update({
         "PYTHONUNBUFFERED": "1",
+        "PYTHONIOENCODING": "utf-8",
         "SERVER_IP": "127.0.0.1",
         "DATA_PORT": str(data_port),
         "KEY_PORT": str(key_port),
@@ -55,7 +65,8 @@ def test_local_sender_receiver_roundtrip():
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-        encoding='utf-8'
+        encoding="utf-8",
+        errors="ignore"
     )
 
     try:
@@ -67,11 +78,14 @@ def test_local_sender_receiver_roundtrip():
             env=sender_env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="ignore",
             timeout=10,
             check=True,
         )
 
-        receiver_out, _ = receiver.communicate(timeout=10)
+        receiver_out = receiver.communicate(timeout=10)[0] or ""
+
         full_receiver_output = first_output + receiver_out
 
         assert "[+] Đã gửi key/IV qua kênh khóa." in sender.stdout
@@ -79,7 +93,11 @@ def test_local_sender_receiver_roundtrip():
         assert "Key:" in sender.stdout
         assert "IV:" in sender.stdout
         assert "Ciphertext:" in sender.stdout
-        assert "[+] Bản tin gốc: Xin chao FIT4012 - local AES integration test" in full_receiver_output
+
+        assert (
+            "[+] Ban tin goc: Xin chao FIT4012 - local AES integration test"
+            in full_receiver_output
+        )
 
     finally:
         if receiver.poll() is None:
